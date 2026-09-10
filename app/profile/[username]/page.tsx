@@ -4,6 +4,7 @@ import Post from "@/models/Post";
 import "@/models/Community";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+export const revalidate = 60;
 
 type ProfilePageProps = {
   params: Promise<{

@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 
+import Comment from "@/models/Comment";
+import Bookmark from "@/models/Bookmark";
 import { auth } from "@/auth";
 import connectDB from "@/lib/db";
 import Post from "@/models/Post";
@@ -178,7 +180,17 @@ export async function DELETE(
       );
     }
 
-    await Post.findByIdAndDelete(id);
+    await Promise.all([
+  Comment.deleteMany({
+    post: post._id,
+  }),
+
+  Bookmark.deleteMany({
+    post: post._id,
+  }),
+
+  post.deleteOne(),
+]);
 
     return Response.json(
       { message: "Post deleted successfully" },

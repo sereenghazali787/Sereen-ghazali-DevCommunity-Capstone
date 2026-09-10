@@ -28,17 +28,27 @@ export default async function BlogPage({
 
   await connectDB();
 
-  const post = await Post.findOne({
+const post = await Post.findOneAndUpdate(
+  {
     slug,
     published: true,
-  })
-    .populate("author", "name username image bio")
-    .populate("community", "name slug")
-    .lean();
-
-  if (!post) {
-    notFound();
+  },
+  {
+    $inc: {
+      views: 1,
+    },
+  },
+  {
+  returnDocument: "after",
   }
+)
+  .populate("author", "name username image bio")
+  .populate("community", "name slug")
+  .lean();
+
+if (!post) {
+  notFound();
+}
 
   const session = await auth();
 
@@ -119,6 +129,12 @@ export default async function BlogPage({
             </Link>
           </p>
 
+          <p className="mt-1">
+             Views:{" "}
+           <span className="text-foreground">
+            {post.views}
+           </span>
+          </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             {session?.user && (
               <BookmarkButton

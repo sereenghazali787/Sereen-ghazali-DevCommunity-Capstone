@@ -33,8 +33,8 @@ export default async function CommunityPage({
   const isMember =
     session?.user?.id &&
     community.members.some(
-      (memberId) =>
-        memberId.toString() === session.user.id
+      (memberId: unknown) =>
+        String(memberId) === session.user.id
     );
 
   return (

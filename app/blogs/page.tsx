@@ -10,6 +10,8 @@ type BlogsPageProps = {
   searchParams: Promise<{
     q?: string;
     topic?: string;
+    page?: string;
+    sort?: string;
   }>;
 };
 
@@ -18,9 +20,22 @@ export default async function BlogsPage({
 }: BlogsPageProps) {
   const params = await searchParams;
 
-  const q = params.q?.trim() || "";
-  const topic =
-    params.topic?.trim().toLowerCase() || "";
+const q = params.q?.trim() || "";
+
+const topic =
+  params.topic?.trim().toLowerCase() || "";
+
+const sort =
+  params.sort === "trending"
+    ? "trending"
+    : "latest";
+
+const currentPage = Math.max(
+  1,
+  Number(params.page) || 1
+);
+
+const postsPerPage = 6;
 
   await connectDB();
 
@@ -44,6 +59,16 @@ export default async function BlogsPage({
     filter.topics = topic;
   }
 
+  const totalPosts =
+    await Post.countDocuments(filter);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(
+      totalPosts / postsPerPage
+    )
+  );
+
   const posts = await Post.find(filter)
     .populate(
       "author",
@@ -53,18 +78,55 @@ export default async function BlogsPage({
       "community",
       "name slug"
     )
-    .sort({
-      createdAt: -1,
-    })
+  .sort(
+  sort === "trending"
+    ? {
+        views: -1,
+        createdAt: -1,
+      }
+    : {
+        createdAt: -1,
+      }
+)
+    .skip(
+      (currentPage - 1) *
+        postsPerPage
+    )
+    .limit(postsPerPage)
     .lean();
 
-  // Get all available topics for the filter dropdown
   const availableTopics: string[] =
     await Post.distinct("topics", {
       published: true,
     });
 
   availableTopics.sort();
+
+  function buildPageUrl(page: number) {
+    const urlParams =
+      new URLSearchParams();
+
+    if (q) {
+      urlParams.set("q", q);
+    }
+
+    if (topic) {
+      urlParams.set(
+        "topic",
+        topic
+      );
+    }
+    
+ // Keep the selected sorting mode
+  urlParams.set("sort", sort);
+
+    urlParams.set(
+      "page",
+      page.toString()
+    );
+
+    return `/blogs?${urlParams.toString()}`;
+  }
 
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-6 py-12">
@@ -74,15 +136,15 @@ export default async function BlogsPage({
         </h1>
 
         <p className="mt-2 text-muted">
-          Search technical articles and discover
-          content by topic.
+          Search technical articles and
+          discover content by topic.
         </p>
       </div>
 
       <form
         action="/blogs"
         method="GET"
-        className="mb-10 grid gap-4 rounded-xl border border-border bg-surface p-5 md:grid-cols-[1fr_220px_auto]"
+       className="mb-10 grid gap-4 rounded-xl border border-border bg-surface p-5 md:grid-cols-[1fr_220px_180px_auto]"
       >
         <div>
           <label
@@ -136,7 +198,35 @@ export default async function BlogsPage({
             )}
           </select>
         </div>
+<div>
+  <label
+    htmlFor="sort"
+    className="mb-2 block text-sm font-medium"
+  >
+    Sort By
+  </label>
 
+  <select
+    id="sort"
+    name="sort"
+    defaultValue={sort}
+    className="w-full rounded-lg border border-border bg-zinc-900 px-4 py-3 text-white outline-none transition focus:border-primary"
+  >
+    <option
+      value="latest"
+      className="bg-zinc-900 text-white"
+    >
+      Latest
+    </option>
+
+    <option
+      value="trending"
+      className="bg-zinc-900 text-white"
+    >
+      Trending
+    </option>
+  </select>
+</div>
         <div className="flex items-end gap-3">
           <button
             type="submit"
@@ -161,14 +251,17 @@ export default async function BlogsPage({
           <p className="text-sm text-muted">
             Found{" "}
             <span className="font-semibold text-foreground">
-              {posts.length}
+              {totalPosts}
             </span>{" "}
             result
-            {posts.length === 1 ? "" : "s"}
+            {totalPosts === 1
+              ? ""
+              : "s"}
 
             {q && (
               <>
-                {" "}for{" "}
+                {" "}
+                for{" "}
                 <span className="text-foreground">
                   &quot;{q}&quot;
                 </span>
@@ -177,7 +270,8 @@ export default async function BlogsPage({
 
             {topic && (
               <>
-                {" "}in{" "}
+                {" "}
+                in{" "}
                 <span className="text-foreground">
                   #{topic}
                 </span>
@@ -194,7 +288,8 @@ export default async function BlogsPage({
           </h2>
 
           <p className="mt-2 text-muted">
-            Try a different search term or topic.
+            Try a different search term
+            or topic.
           </p>
 
           {(q || topic) && (
@@ -207,51 +302,103 @@ export default async function BlogsPage({
           )}
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2">
-          {posts.map((post) => (
-            <Link
-              key={post._id.toString()}
-              href={`/blogs/${post.slug}`}
-              className="block rounded-xl border border-border bg-surface p-6 transition hover:-translate-y-1 hover:border-primary"
-            >
-              <div className="mb-3 flex flex-wrap gap-2">
-                {post.topics.map(
-                  (postTopic: string) => (
-                    <span
-                      key={postTopic}
-                      className="rounded-full border border-border px-3 py-1 text-xs text-muted"
-                    >
-                      #{postTopic}
+        <>
+          <div className="grid gap-6 md:grid-cols-2">
+            {posts.map((post) => (
+              <Link
+                key={post._id.toString()}
+                href={`/blogs/${post.slug}`}
+                className="block rounded-xl border border-border bg-surface p-6 transition hover:-translate-y-1 hover:border-primary"
+              >
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {post.topics.map(
+                    (
+                      postTopic: string
+                    ) => (
+                      <span
+                        key={postTopic}
+                        className="rounded-full border border-border px-3 py-1 text-xs text-muted"
+                      >
+                        #{postTopic}
+                      </span>
+                    )
+                  )}
+                </div>
+
+                <h2 className="text-xl font-semibold">
+                  {post.title}
+                </h2>
+
+                <p className="mt-3 leading-6 text-muted">
+                  {post.excerpt}
+                </p>
+
+                <div className="mt-5 text-sm text-muted">
+                  <p>
+                    By{" "}
+                    <span className="text-foreground">
+                      {post.author
+                        ?.name ??
+                        "Unknown"}
                     </span>
-                  )
-                )}
-              </div>
+                  </p>
 
-              <h2 className="text-xl font-semibold">
-                {post.title}
-              </h2>
+                  <p className="mt-1">
+                    {post.community
+                      ?.name ??
+                      "No community"}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
 
-              <p className="mt-3 leading-6 text-muted">
-                {post.excerpt}
-              </p>
+          {totalPages > 1 && (
+            <div className="mt-10 flex items-center justify-center gap-4">
+              {currentPage > 1 ? (
+                <Link
+                  href={buildPageUrl(
+                    currentPage - 1
+                  )}
+                  className="rounded-lg border border-border px-4 py-2 text-sm transition hover:bg-surface"
+                >
+                  Previous
+                </Link>
+              ) : (
+                <span className="rounded-lg border border-border px-4 py-2 text-sm text-muted opacity-50">
+                  Previous
+                </span>
+              )}
 
-              <div className="mt-5 text-sm text-muted">
-                <p>
-                  By{" "}
-                  <span className="text-foreground">
-                    {post.author?.name ??
-                      "Unknown"}
-                  </span>
-                </p>
+              <span className="text-sm text-muted">
+                Page{" "}
+                <span className="text-foreground">
+                  {currentPage}
+                </span>{" "}
+                of{" "}
+                <span className="text-foreground">
+                  {totalPages}
+                </span>
+              </span>
 
-                <p className="mt-1">
-                  {post.community?.name ??
-                    "No community"}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
+              {currentPage <
+              totalPages ? (
+                <Link
+                  href={buildPageUrl(
+                    currentPage + 1
+                  )}
+                  className="rounded-lg border border-border px-4 py-2 text-sm transition hover:bg-surface"
+                >
+                  Next
+                </Link>
+              ) : (
+                <span className="rounded-lg border border-border px-4 py-2 text-sm text-muted opacity-50">
+                  Next
+                </span>
+              )}
+            </div>
+          )}
+        </>
       )}
     </main>
   );

@@ -1,3 +1,5 @@
+import { revalidatePath } from "next/cache";
+
 import { auth } from "@/auth";
 
 import connectDB from "@/lib/db";
@@ -84,12 +86,17 @@ export async function PATCH(request: Request) {
       );
     }
 
-    user.name = name;
-    user.username = username;
-    user.bio = bio;
-    user.githubUrl = githubUrl;
+    const oldUsername = user.username;
 
-    await user.save();
+user.name = name;
+user.username = username;
+user.bio = bio;
+user.githubUrl = githubUrl;
+
+await user.save();
+
+revalidatePath(`/profile/${oldUsername}`);
+revalidatePath(`/profile/${user.username}`);
 
     return Response.json(
       {
