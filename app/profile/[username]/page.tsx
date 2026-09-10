@@ -4,7 +4,7 @@ import Post from "@/models/Post";
 import "@/models/Community";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-export const revalidate = 60;
+import { cacheLife } from "next/cache";
 
 type ProfilePageProps = {
   params: Promise<{
@@ -15,6 +15,8 @@ type ProfilePageProps = {
 export default async function ProfilePage({
   params,
 }: ProfilePageProps) {
+   "use cache";
+  cacheLife("minutes");
   const { username } = await params;
 
   await connectDB();

@@ -10,8 +10,6 @@ import User from "@/models/User";
 
 import "@/models/Comment";
 
-export const dynamic = "force-dynamic";
-
 export default async function DashboardPage() {
   const session = await auth();
 
