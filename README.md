@@ -475,5 +475,3 @@ The deployed application was tested for:
 **Sereen Ghazali**
 
 TechTalks Full-Stack Capstone Project
- 
- 
