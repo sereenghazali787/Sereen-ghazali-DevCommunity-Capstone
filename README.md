@@ -475,3 +475,7 @@ The deployed application was tested for:
 **Sereen Ghazali**
 
 TechTalks Full-Stack Capstone Project
+
+## Capstone Submission
+
+Final project prepared for mentor review.
