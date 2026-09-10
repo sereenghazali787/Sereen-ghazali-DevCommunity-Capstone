@@ -1,4 +1,5 @@
 import Link from "next/link";
+
 import { auth, signIn, signOut } from "@/auth";
 
 export default async function Navbar() {
@@ -7,11 +8,14 @@ export default async function Navbar() {
   return (
     <header className="border-b border-border bg-background/95">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+        {/* Logo */}
         <Link href="/" className="text-xl font-bold tracking-tight">
           DevCommunity
         </Link>
 
+        {/* Navigation Links */}
         <div className="flex items-center gap-6 text-sm text-muted">
+          {/* Public Links */}
           <Link
             href="/communities"
             className="transition hover:text-foreground"
@@ -28,12 +32,14 @@ export default async function Navbar() {
 
           {session?.user ? (
             <>
-            <Link
-  href="/create"
-  className="transition hover:text-foreground"
->
-  Create Blog
-</Link>
+              {/* Signed-in User Links */}
+              <Link
+                href="/create"
+                className="transition hover:text-foreground"
+              >
+                Create Blog
+              </Link>
+
               <Link
                 href="/dashboard"
                 className="transition hover:text-foreground"
@@ -42,12 +48,28 @@ export default async function Navbar() {
               </Link>
 
               <Link
+                href="/bookmarks"
+                className="transition hover:text-foreground"
+              >
+                Bookmarks
+              </Link>
+
+              <Link
+                href="/settings"
+                className="transition hover:text-foreground"
+              >
+                Settings
+              </Link>
+
+              {/* Public Profile */}
+              <Link
                 href={`/profile/${session.user.username}`}
                 className="transition hover:text-foreground"
               >
                 @{session.user.username}
               </Link>
 
+              {/* Sign Out */}
               <form
                 action={async () => {
                   "use server";
@@ -63,6 +85,7 @@ export default async function Navbar() {
               </form>
             </>
           ) : (
+            /* Sign In */
             <form
               action={async () => {
                 "use server";
